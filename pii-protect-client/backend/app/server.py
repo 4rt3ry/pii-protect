@@ -47,3 +47,16 @@ def get_patient(patient_id: str):
         if patient["patient_id"] == patient_id:
             return patient
     raise HTTPException(status_code=404, detail="Patient not found")
+
+### IF WE WANTED ANOTHER LAYER
+
+# @app.get("/patients", response_model=List[Patient])
+# def read_patients():
+#     return get_all_patients()
+
+# @app.get("/patients/{patient_id}", response_model=Patient)
+# def read_patient(patient_id: str):
+#     patient = get_patient_by_id(patient_id)
+#     if not patient:
+#         raise HTTPException(status_code=404, detail="Patient not found")
+#     return patient
