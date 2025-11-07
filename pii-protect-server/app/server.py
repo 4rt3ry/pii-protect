@@ -6,6 +6,7 @@ from typing import List
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from db import patients
 
 app = FastAPI()
 
@@ -18,11 +19,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DATA_PATH = Path(__file__).parent / "mockPatients.json"
-with open(DATA_PATH, "r") as f:
-    data = json.load(f) 
+patient_data = patients.load_patients()
 
-# will allow FastAPI to validate and sterialize data when passed in
+# will allow FastAPI to validate and sterialize patient_data
+# when passed in
 class Patient(BaseModel):
     patient_id: str
     first_name: str
@@ -38,12 +38,13 @@ class Patient(BaseModel):
     primary_physician: str
     
 @app.get("/patients", response_model=List[Patient])
-def get_patients():
-    return data["patients"]
+async def get_patients():
+    return patient_data
+
 
 @app.get("/patients/{patient_id}", response_model=Patient)
-def get_patient(patient_id: str):
-    for patient in data["patients"]:
+async def get_patient(patient_id: str):
+    for patient in patient_data:
         if patient["patient_id"] == patient_id:
             return patient
     raise HTTPException(status_code=404, detail="Patient not found")
