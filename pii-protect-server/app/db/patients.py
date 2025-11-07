@@ -17,7 +17,7 @@ class Patient(BaseModel):
     policy_number: str
     primary_physician: str
 
-DATA_PATH = Path(__file__).parent / "patients.json"
+DATA_PATH = Path(__file__).parent.parent / "data/mockPatients.json"
 
 def load_patients() -> List[dict]:
     """Load patients from JSON file."""
