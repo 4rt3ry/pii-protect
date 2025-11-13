@@ -39,12 +39,14 @@ class Patient(BaseModel):
     primary_physician: str
 
 class PatientAuthInfo(BaseModel):
-    patient_id: str
     first_name: str
     last_name: str
-    phone_number: str
-    ssn: str
+    phone: str
+    ssn_last_four: str
     
+class AuthenticationResponse(BaseModel):
+    success: bool
+
 @app.get("/", response_model=dict)
 async def get_root():
     return {}
@@ -61,11 +63,34 @@ async def get_patient(patient_id: str):
             return patient
     raise HTTPException(status_code=404, detail="Patient not found")
 
-async def post_auth_information(auth_info: PatientAuthInfo):
+@app.post("/auth_data", response_model=AuthenticationResponse)
+async def post_auth_data(auth_data: PatientAuthInfo):
     # instead of creating a GUI for the service provider to enter user information,
     # once the information is validated, a response is sent to both the user and the service provider
 
-    pass
+    # input validation
+    if len(vars(auth_data)["ssn_last_four"]) != 4:
+        raise HTTPException(status_code=400, detail="SSN must be exactly 4 digits")
+
+    current_patient = None
+    for patient in patient_data:
+        # use phone number as primary key
+        if patient["phone"] == vars(auth_data)["phone"]:
+            current_patient = patient
+            break
+
+    if current_patient == None:
+        return { "success": False }
+
+    exact_info = ["first_name", "last_name", "phone"]
+   
+    validate_exact_info = all([vars(auth_data)[key] == current_patient[key] for key in exact_info])
+    validate_ssn = current_patient["ssn"].endswith(vars(auth_data)["ssn_last_four"])
+
+    if validate_exact_info and validate_ssn:
+        return { "success": True }
+
+    return { "success": False }
 
 ### IF WE WANTED ANOTHER LAYER
 
