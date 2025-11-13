@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import List
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from db import patients
@@ -36,6 +37,17 @@ class Patient(BaseModel):
     insurance_provider: str
     policy_number: str
     primary_physician: str
+
+class PatientAuthInfo(BaseModel):
+    patient_id: str
+    first_name: str
+    last_name: str
+    phone_number: str
+    ssn: str
+    
+@app.get("/", response_model=dict)
+async def get_root():
+    return {}
     
 @app.get("/patients", response_model=List[Patient])
 async def get_patients():
@@ -48,6 +60,12 @@ async def get_patient(patient_id: str):
         if patient["patient_id"] == patient_id:
             return patient
     raise HTTPException(status_code=404, detail="Patient not found")
+
+async def post_auth_information(auth_info: PatientAuthInfo):
+    # instead of creating a GUI for the service provider to enter user information,
+    # once the information is validated, a response is sent to both the user and the service provider
+
+    pass
 
 ### IF WE WANTED ANOTHER LAYER
 
