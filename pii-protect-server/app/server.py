@@ -3,16 +3,12 @@ from contextlib import asynccontextmanager
 import json
 from pathlib import Path
 from typing import List
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from db import patients
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import StreamingResponse
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 
 app = FastAPI()
-
-app.add_middleware(HTTPSRedirectMiddleware)
 
 # allows for cross orgin calls
 app.add_middleware(
@@ -22,7 +18,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 patient_data = patients.load_patients()
 
@@ -41,19 +36,12 @@ class Patient(BaseModel):
     insurance_provider: str
     policy_number: str
     primary_physician: str
-
-class PatientAuthInfo(BaseModel):
+    
+class PatientVerify(BaseModel):
     first_name: str
     last_name: str
+    ssn_last_4: str
     phone: str
-    ssn_last_four: str
-    
-class AuthenticationResponse(BaseModel):
-    success: bool
-
-@app.get("/", response_model=dict)
-async def get_root():
-    return {}
     
 @app.get("/patients", response_model=List[Patient])
 async def get_patients():
@@ -67,34 +55,22 @@ async def get_patient(patient_id: str):
             return patient
     raise HTTPException(status_code=404, detail="Patient not found")
 
-@app.post("/auth_data", response_model=AuthenticationResponse)
-async def post_auth_data(auth_data: PatientAuthInfo):
-    # instead of creating a GUI for the service provider to enter user information,
-    # once the information is validated, a response is sent to both the user and the service provider
-
-    # input validation
-    if len(vars(auth_data)["ssn_last_four"]) != 4:
-        raise HTTPException(status_code=400, detail="SSN must be exactly 4 digits")
-
-    current_patient = None
-    for patient in patient_data:
-        # use phone number as primary key
-        if patient["phone"] == vars(auth_data)["phone"]:
-            current_patient = patient
-            break
-
-    if current_patient == None:
-        return { "success": False }
-
-    exact_info = ["first_name", "last_name", "phone"]
-   
-    validate_exact_info = all([vars(auth_data)[key] == current_patient[key] for key in exact_info])
-    validate_ssn = current_patient["ssn"].endswith(vars(auth_data)["ssn_last_four"])
-
-    if validate_exact_info and validate_ssn:
-        return { "success": True }
-
-    return { "success": False }
+@app.post("/verify_pii")
+def verify_pii(payload: PatientVerify):
+    first = payload.first_name.lower()
+    last = payload.last_name.lower()
+    ssn = payload.ssn_last_4
+    phone = payload.phone.replace(" ", "").replace("-", "")
+    
+    # TODO Decrypt patient data to pass in
+    patient = patients.lookup_patient(first, last, ssn, phone)
+    
+    if(patient):
+        # TODO OR call some function to decrypt and verify information
+        return {"status": "verified", "patient_id": patient["patient_id"]}
+    else:
+        raise HTTPException(status_code=404, detail="PII verification failed")
+    
 
 ### IF WE WANTED ANOTHER LAYER
 
@@ -108,4 +84,3 @@ async def post_auth_data(auth_data: PatientAuthInfo):
 #     if not patient:
 #         raise HTTPException(status_code=404, detail="Patient not found")
 #     return patient
-
