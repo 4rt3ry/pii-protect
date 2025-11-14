@@ -5,18 +5,27 @@ from pathlib import Path
 
 TOTP_SECRET_PATH = Path(__file__).parent / "data/sampleSecrets.json"
 
+CONFIG = {
+    "digits": 6,
+    "digest": None,
+    "name": None,
+    "issuer": None,
+    "interval": 30
+}
+
 def get_totp_token(secret: str) -> str:
     """
     Generate a time based token
     """
-    totp = pyotp.TOTP(secret)
+    totp = pyotp.TOTP(secret, digits=CONFIG["digits"], digest=CONFIG["digest"], name=CONFIG["name"], issuer=CONFIG["issuer"], interval=CONFIG["interval"])
     return totp.now()
 
 def verify_totp_token(secret: str, token: str) -> bool:
     """
     Verify the given token with the expected time based token
     """
-    expected_token = pyotp.TOTP(secret).now()
+    expected_token = totp = pyotp.TOTP(secret, digits=CONFIG["digits"], digest=CONFIG["digest"], name=CONFIG["name"], issuer=CONFIG["issuer"], interval=CONFIG["interval"]).now()
+
     return expected_token == token
 
 
