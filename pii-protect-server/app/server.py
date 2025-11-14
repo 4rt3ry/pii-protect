@@ -3,13 +3,16 @@ from contextlib import asynccontextmanager
 import json
 from pathlib import Path
 from typing import List
+from pydantic import BaseModel
+from db import patients
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from db import patients
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 
 app = FastAPI()
+
+app.add_middleware(HTTPSRedirectMiddleware)
 
 # allows for cross orgin calls
 app.add_middleware(
@@ -19,6 +22,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 patient_data = patients.load_patients()
 
@@ -104,3 +108,4 @@ async def post_auth_data(auth_data: PatientAuthInfo):
 #     if not patient:
 #         raise HTTPException(status_code=404, detail="Patient not found")
 #     return patient
+
