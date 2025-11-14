@@ -24,9 +24,10 @@ def verify_totp_token(secret: str, token: str) -> bool:
     """
     Verify the given token with the expected time based token
     """
-    expected_token = totp = pyotp.TOTP(secret, digits=CONFIG["digits"], digest=CONFIG["digest"], name=CONFIG["name"], issuer=CONFIG["issuer"], interval=CONFIG["interval"]).now()
+    totp = pyotp.TOTP(secret, digits=CONFIG["digits"], digest=CONFIG["digest"], name=CONFIG["name"], issuer=CONFIG["issuer"], interval=CONFIG["interval"])
 
-    return expected_token == token
+    return totp.verify(token, valid_window=0)
+
 
 
 
