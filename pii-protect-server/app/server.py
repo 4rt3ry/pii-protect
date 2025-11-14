@@ -5,10 +5,13 @@ from pathlib import Path
 from typing import List
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from pydantic import BaseModel
 from db import patients
 
 app = FastAPI()
+
+app.add_middleware(HTTPSRedirectMiddleware)
 
 # allows for cross orgin calls
 app.add_middleware(
@@ -42,6 +45,10 @@ class PatientVerify(BaseModel):
     last_name: str
     ssn_last_4: str
     phone: str
+
+@app.get("/", response_model=BaseModel)
+async def get_root():
+    return {}
     
 @app.get("/patients", response_model=List[Patient])
 async def get_patients():
