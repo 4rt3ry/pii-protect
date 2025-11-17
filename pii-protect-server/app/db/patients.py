@@ -37,3 +37,15 @@ def get_patient_by_id(patient_id: str) -> Optional[Patient]:
         if p["patient_id"] == patient_id:
             return Patient(**p)
     return None
+
+def lookup_patient(first, last, ssn, phone):
+    patients = load_patients()
+    
+    for p in patients:
+        if (
+            p["first_name"].lower() == first and
+            p["last_name"].lower() == last and
+            p["ssn_last4"] == ssn and
+            p["phone"].replace(" ", "").replace("-", "") == phone
+        ):
+            return p

@@ -49,6 +49,12 @@ class PatientAuthInfo(BaseModel):
 async def get_root():
     return {}
     
+class PatientVerify(BaseModel):
+    first_name: str
+    last_name: str
+    ssn_last_4: str
+    phone: str
+    
 @app.get("/patients", response_model=List[Patient])
 async def get_patients():
     return patient_data
@@ -61,11 +67,22 @@ async def get_patient(patient_id: str):
             return patient
     raise HTTPException(status_code=404, detail="Patient not found")
 
-async def post_auth_information(auth_info: PatientAuthInfo):
-    # instead of creating a GUI for the service provider to enter user information,
-    # once the information is validated, a response is sent to both the user and the service provider
-
-    pass
+@app.post("/verify_pii")
+def verify_pii(payload: PatientVerify):
+    first = payload.first_name.lower()
+    last = payload.last_name.lower()
+    ssn = payload.ssn_last_4
+    phone = payload.phone.replace(" ", "").replace("-", "")
+    
+    # TODO Decrypt patient data to pass in
+    patient = patients.lookup_patient(first, last, ssn, phone)
+    
+    if(patient):
+        # TODO OR call some function to decrypt and verify information
+        return {"status": "verified", "patient_id": patient["patient_id"]}
+    else:
+        raise HTTPException(status_code=404, detail="PII verification failed")
+    
 
 ### IF WE WANTED ANOTHER LAYER
 
