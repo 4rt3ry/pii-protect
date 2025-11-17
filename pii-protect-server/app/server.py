@@ -4,12 +4,21 @@ import json
 from pathlib import Path
 from typing import List
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.requests import Request
+from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 from pydantic import BaseModel
 from db import patients
+from totp import get_totp_secret, verify_totp_token
+from session import create_session_string, validate_session, end_session
+from datetime import datetime, timedelta
 
 app = FastAPI()
+
+# minutes
+TOKEN_EXPIRATION = 10
+
 
 # allows for cross orgin calls
 app.add_middleware(
@@ -19,6 +28,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# RAM based session storage
+# TODO: replace key with environment variable
+app.add_middleware(SessionMiddleware, secret_key="TEMP_KEY")
 
 patient_data = patients.load_patients()
 
@@ -38,22 +52,26 @@ class Patient(BaseModel):
     policy_number: str
     primary_physician: str
 
-class PatientAuthInfo(BaseModel):
-    patient_id: str
-    first_name: str
-    last_name: str
-    phone_number: str
-    ssn: str
+class TotpPayload(BaseModel):
+    totp: str
     
-@app.get("/", response_model=dict)
-async def get_root():
-    return {}
     
 class PatientVerify(BaseModel):
     first_name: str
     last_name: str
     ssn_last_4: str
     phone: str
+
+class Success(BaseModel):
+    success: bool
+
+@app.get("/", response_model=dict)
+async def get_root():
+    return {}
+
+@app.get("/success", response_model=Success)
+async def get_success():
+    return { "success": True }
     
 @app.get("/patients", response_model=List[Patient])
 async def get_patients():
@@ -67,6 +85,7 @@ async def get_patient(patient_id: str):
             return patient
     raise HTTPException(status_code=404, detail="Patient not found")
 
+# TODO: session is ended after pii is verified
 @app.post("/verify_pii")
 def verify_pii(payload: PatientVerify):
     first = payload.first_name.lower()
@@ -82,6 +101,30 @@ def verify_pii(payload: PatientVerify):
         return {"status": "verified", "patient_id": patient["patient_id"]}
     else:
         raise HTTPException(status_code=404, detail="PII verification failed")
+
+@app.post("/verify_totp")
+def verify_totp(request: Request, response: RedirectResponse, totp: TotpPayload):
+    secret = get_totp_secret()
+    verified = verify_totp_token(secret, totp.totp)
+
+    if verified:
+        # TODO: create session id with uuid4
+        # TODO: store sessions in database (most likely server RAM)
+        # TODO: add session as dependency for certain endpoints
+
+        session_id = create_session_string()
+        # request.session["session_id"] = session_id
+        request.session["session_id"] = session_id
+
+        next_expiration = datetime.now() + timedelta(minutes=TOKEN_EXPIRATION)
+        request.session["token_expiration"] = next_expiration.timestamp()
+        response.set_cookie(key="Authorization", value=session_id)
+        return RedirectResponse("/success", status_code=303)
+
+    else:
+        raise HTTPException(status_code=401, detail="TOTP failed")
+
+
     
 
 ### IF WE WANTED ANOTHER LAYER
