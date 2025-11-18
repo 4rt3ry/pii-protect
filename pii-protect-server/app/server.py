@@ -7,6 +7,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.requests import Request
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from pydantic import BaseModel
 from db import patients
@@ -19,6 +20,7 @@ app = FastAPI()
 # minutes
 TOKEN_EXPIRATION = 10
 
+app.add_middleware(HTTPSRedirectMiddleware)
 
 # allows for cross orgin calls
 app.add_middleware(
@@ -32,7 +34,7 @@ app.add_middleware(
 
 # RAM based session storage
 # TODO: replace key with environment variable
-app.add_middleware(SessionMiddleware, secret_key="TEMP_KEY")
+app.add_middleware(SessionMiddleware, secret_key=create_session_string())
 
 patient_data = patients.load_patients()
 
@@ -55,7 +57,6 @@ class Patient(BaseModel):
 class TotpPayload(BaseModel):
     totp: str
     
-    
 class PatientVerify(BaseModel):
     first_name: str
     last_name: str
@@ -65,7 +66,7 @@ class PatientVerify(BaseModel):
 class Success(BaseModel):
     success: bool
 
-@app.get("/", response_model=dict)
+@app.get("/", response_model=BaseModel)
 async def get_root():
     return {}
 

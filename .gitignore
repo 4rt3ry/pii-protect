@@ -361,5 +361,7 @@ dist-ssr
 *.sln
 *.sw?
 
+secrets/
+
 # Explicitely marked local files
 *.local
