@@ -40,3 +40,18 @@ To deactivate the virtual environment, run the deactivation script.
 ```
 deactivate
 ```
+
+## Certificates
+
+### Generating a key
+```
+openssl ecparam -name secp384r1 -genkey -noout -out key.pem
+```
+
+### Generating a certificate
+
+In production, SAN FQDNS should match the production FQDN instead of localhost.
+```
+openssl req -x509 -key key.pem -out cert.pem -addext 'subjectAltName=DNS:localhost,DNS:127.0.0.1'
+```
+

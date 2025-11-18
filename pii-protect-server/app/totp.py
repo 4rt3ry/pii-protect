@@ -3,7 +3,7 @@ import time
 import json
 from pathlib import Path
 
-TOTP_SECRET_PATH = Path(__file__).parent / "data/sampleSecrets.json"
+TOTP_SECRET_PATH = Path(__file__).parent / "secrets/totpSecrets.json"
 
 CONFIG = {
     "digits": 6,
@@ -11,6 +11,7 @@ CONFIG = {
     "name": None,
     "issuer": None,
     "interval": 30
+    "valid_window": 1
 }
 
 def get_totp_token(secret: str) -> str:
@@ -26,7 +27,7 @@ def verify_totp_token(secret: str, token: str) -> bool:
     """
     totp = pyotp.TOTP(secret, digits=CONFIG["digits"], digest=CONFIG["digest"], name=CONFIG["name"], issuer=CONFIG["issuer"], interval=CONFIG["interval"])
 
-    return totp.verify(token, valid_window=0)
+    return totp.verify(token, valid_window=CONFIG["valid_window"])
 
 
 
@@ -36,7 +37,7 @@ def get_totp_secret() -> str:
     Returns the sample totp secret as a string
     """
     with open(TOTP_SECRET_PATH, 'r') as totp_file:
-        return json.load(totp_file)["totp_secret"]
+        return json.load(totp_file)["sample_secret"]
 
 
 
