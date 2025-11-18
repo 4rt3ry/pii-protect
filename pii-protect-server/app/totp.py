@@ -10,7 +10,7 @@ CONFIG = {
     "digest": None,
     "name": None,
     "issuer": None,
-    "interval": 30
+    "interval": 30,
     "valid_window": 1
 }
 
