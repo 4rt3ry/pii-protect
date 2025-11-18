@@ -14,11 +14,16 @@ from db import patients
 from totp import get_totp_secret, verify_totp_token
 from session import create_session_string, validate_session, end_session
 from datetime import datetime, timedelta
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+from cryptography.exceptions import InvalidKey
 
 app = FastAPI()
 
 # minutes
 TOKEN_EXPIRATION = 10
+ECDH_ALGO = ec.SECP384R1
 
 app.add_middleware(HTTPSRedirectMiddleware)
 
@@ -65,6 +70,9 @@ class PatientVerify(BaseModel):
 
 class Success(BaseModel):
     success: bool
+
+class Publickey(BaseModel):
+    public_key: bytes
 
 @app.get("/", response_model=BaseModel)
 async def get_root():
@@ -124,6 +132,32 @@ def verify_totp(request: Request, response: RedirectResponse, totp: TotpPayload)
 
     else:
         raise HTTPException(status_code=401, detail="TOTP failed")
+
+@app.post("/post_public_key", response = Publickey)
+def post_key_half(payload: Publickey):
+    try:
+        serialized_client_public_key = payload.public_key
+        client_public_key = serialization.load_pem_public_key(
+                serialized_client_public_key
+        )
+    except InvalidKey:
+        return HTTPException(status_code = 400, detail = "invalid key")
+
+    private_key = ec.generate_private_key(ECDH_ALGO())
+    shared_key = private_key.exchange(ec.ECDH(), client_public_key)
+    derived_key = HKDF(
+            algorithm = hashes.SHA256(),
+            length = 32,
+            salt = None,
+            info = b'handshake data'
+    ).derive(shared_key)
+
+    server_public_key = private_key.public_key()
+    serialized_server_public_key = server_public_key.public_bytes(
+            encoding = serialization.Encoding.PEM,
+            format = serialization.PublicFormat.SubjectPublicKeyInfo
+    )
+    return { "public_key": serialized_server_public_key }
 
 
     
