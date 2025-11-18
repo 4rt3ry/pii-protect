@@ -41,6 +41,13 @@ To deactivate the virtual environment, run the deactivation script.
 deactivate
 ```
 
+## Deploying
+
+```
+# navigate to /pii-protect-server/app/
+python deploy.py
+```
+
 ## Certificates
 
 ### Generating a key
