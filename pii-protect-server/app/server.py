@@ -18,6 +18,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.exceptions import InvalidKey
+import base64
 
 app = FastAPI()
 
@@ -72,7 +73,7 @@ class Success(BaseModel):
     success: bool
 
 class Publickey(BaseModel):
-    public_key: bytes
+    public_key: str
 
 @app.get("/", response_model=BaseModel)
 async def get_root():
@@ -82,21 +83,22 @@ async def get_root():
 async def get_success():
     return { "success": True }
     
-@app.get("/patients", response_model=List[Patient])
-async def get_patients():
-    return patient_data
-
-
-@app.get("/patients/{patient_id}", response_model=Patient)
-async def get_patient(patient_id: str):
-    for patient in patient_data:
-        if patient["patient_id"] == patient_id:
-            return patient
-    raise HTTPException(status_code=404, detail="Patient not found")
+# @app.get("/patients", response_model=List[Patient])
+# async def get_patients():
+#     return patient_data
+# 
+# 
+# @app.get("/patients/{patient_id}", response_model=Patient)
+# async def get_patient(patient_id: str):
+#     for patient in patient_data:
+#         if patient["patient_id"] == patient_id:
+#             return patient
+#     raise HTTPException(status_code=404, detail="Patient not found")
 
 # TODO: session is ended after pii is verified
 @app.post("/verify_pii")
-def verify_pii(payload: PatientVerify):
+def verify_pii(request: Request, payload: PatientVerify):
+
     first = payload.first_name.lower()
     last = payload.last_name.lower()
     ssn = payload.ssn_last_4
@@ -133,18 +135,21 @@ def verify_totp(request: Request, response: RedirectResponse, totp: TotpPayload)
     else:
         raise HTTPException(status_code=401, detail="TOTP failed")
 
-@app.post("/post_public_key", response = Publickey)
-def post_key_half(payload: Publickey):
+@app.post("/post_public_key", response_model = Publickey)
+def post_key_half(request: Request, payload: Publickey):
     try:
-        serialized_client_public_key = payload.public_key
+        serialized_client_public_key = payload.public_key.encode('utf-8')
         client_public_key = serialization.load_pem_public_key(
                 serialized_client_public_key
         )
-    except InvalidKey:
+    except (InvalidKey, ValueError):
         return HTTPException(status_code = 400, detail = "invalid key")
 
+
     private_key = ec.generate_private_key(ECDH_ALGO())
+    # TODO: what is ECDH()? if client doesn't use python, will this still work?
     shared_key = private_key.exchange(ec.ECDH(), client_public_key)
+    
     derived_key = HKDF(
             algorithm = hashes.SHA256(),
             length = 32,
@@ -152,25 +157,11 @@ def post_key_half(payload: Publickey):
             info = b'handshake data'
     ).derive(shared_key)
 
+    request.session["session_key"] = base64.b64encode(derived_key).decode('ascii')
+
     server_public_key = private_key.public_key()
     serialized_server_public_key = server_public_key.public_bytes(
             encoding = serialization.Encoding.PEM,
             format = serialization.PublicFormat.SubjectPublicKeyInfo
     )
     return { "public_key": serialized_server_public_key }
-
-
-    
-
-### IF WE WANTED ANOTHER LAYER
-
-# @app.get("/patients", response_model=List[Patient])
-# def read_patients():
-#     return get_all_patients()
-
-# @app.get("/patients/{patient_id}", response_model=Patient)
-# def read_patient(patient_id: str):
-#     patient = get_patient_by_id(patient_id)
-#     if not patient:
-#         raise HTTPException(status_code=404, detail="Patient not found")
-#     return patient
