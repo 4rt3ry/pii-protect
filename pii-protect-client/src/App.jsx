@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
+import {ClientInfoForm} from './ClientInfoForm.jsx'
 
 // --- PII FIELD DEFINITION ---
 // Defines all fields and their requirements.
-const PII_FORM_FIELDS = [
+const ALL_PII_FORM_FIELDS = [
   // --- MANDATORY FIELDS ---
   { key: 'firstName', label: 'First Name', type: 'text', required: true, section: 'Mandatory Information' },
   { key: 'lastName', label: 'Last Name', type: 'text', required: true },
@@ -25,109 +26,21 @@ const PII_FORM_FIELDS = [
   { key: 'securityQuestion', label: 'Mother\'s Maiden Name', type: 'text', required: false, section: 'Security Questions (Optional)' },
 ];
 
+// TODO: should be retrieved from the server as an SSE
+const PII_FORM_FIELDS = [
+  { key: 'firstName', label: 'First Name', type: 'text', required: true, section: 'Mandatory Information' },
+  { key: 'lastName', label: 'Last Name', type: 'text', required: true },
+  { key: 'phone', label: 'Phone Number', type: 'tel', required: true, isIdentifier: true }, // Added isIdentifier flag
+  { key: 'ssnLastFour', label: 'Last 4 digits of SSN', type: 'text', maxLength: 4, required: false },
+]
+
+
+// Hardcoded SP for the prompt
+const SERVICE_PROVIDER = 'Chase Bank';
 
 const App = () => {
-  const [piiInput, setPiiInput] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submissionStatus, setSubmissionStatus] = useState(null); // 'success', 'error', or null
-  
-  // Hardcoded SP for the prompt
-  const SERVICE_PROVIDER = 'Chase Bank';
 
-
-  // --- HANDLER FUNCTIONS ---
-  const handlePiiInputChange = (e, key) => {
-    let value = e.target.value;
-    
-    // Simple formatting for the Phone Number field for consistency
-    if (key === 'phone') {
-        value = value.replace(/[^\d]/g, ''); // Remove non-digits
-        if (value.length > 10) value = value.slice(0, 10); // Limit to 10 digits
-    }
-    
-    setPiiInput(prev => ({...prev, [key]: value}));
-  };
-
-  const handleSubmit = useCallback(async (e) => {
-    e.preventDefault();
-    
-    // Find the identifier (phone number)
-    const phoneNumberIdentifier = piiInput.phone || '';
-    
-    if (!phoneNumberIdentifier) {
-        alert("Please enter a phone number to identify the account.");
-        return;
-    }
-    
-    setIsSubmitting(true);
-    setSubmissionStatus('loading');
-    
-    // 1. GATHER DATA: Assemble the payload ready for backend encryption
-    const rawPayload = {
-      // **CRITICAL CHANGE**: The identifier is the phone number
-      customerIdentifier: phoneNumberIdentifier,
-      timestamp: new Date().toISOString(),
-      ...piiInput
-    };
-    
-    // NOTE TO BACKEND TEAM: The 'customerIdentifier' key is now the 10-digit phone number 
-    // submitted by the user. Use this number to look up the user's Reference PII in the database
-    // before attempting decryption. The object 'rawPayload' would be passed here 
-    // to the external encryption function (e.g., hybridEncrypt(rawPayload))
-    // before being sent via REST API.
-
-    console.log("Raw PII Payload prepared for encryption:", rawPayload);
-
-    // ZERO-STORAGE PRINCIPLE: Clear input state immediately after payload assembly
-    setPiiInput({});
-
-    // Simulate Network/Encryption Delay (2 seconds)
-    setTimeout(() => {
-      setSubmissionStatus('success');
-      setIsSubmitting(false);
-    }, 2000);
-  }, [piiInput]);
-
-
-  // --- UI RENDERING LOGIC (PII Form Fields) ---
-  const renderFormFields = () => {
-    let currentSection = '';
-    return PII_FORM_FIELDS.map((field) => {
-      let sectionHeader = null;
-      if (field.section && field.section !== currentSection) {
-        currentSection = field.section;
-        sectionHeader = (
-          <h3 className="text-xl font-semibold text-gray-800 border-b pb-2 mb-4 mt-6">
-            {field.section}
-          </h3>
-        );
-      }
-      
-      const fieldElement = (
-        <div key={field.key} className="mb-4">
-          <label className="block text-sm font-medium text-gray-700">
-            {field.label} {field.required && <span className="text-blue-500">*</span>}
-          </label>
-          <input 
-            type={field.type} 
-            maxLength={field.maxLength}
-            value={piiInput[field.key] || ''} 
-            onChange={(e) => handlePiiInputChange(e, field.key)}
-            className="mt-1 block w-full rounded-lg border border-gray-300 shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 transition duration-150" 
-            required={field.required}
-            disabled={isSubmitting}
-          />
-        </div>
-      );
-      
-      return (
-        <React.Fragment key={field.key}>
-          {sectionHeader}
-          {fieldElement}
-        </React.Fragment>
-      );
-    });
-  };
+    const [submissionStatus, setSubmissionStatus] = useState(null); // 'success', 'error', or null
   
   
   // --- MAIN RENDER ---
@@ -164,7 +77,15 @@ const App = () => {
             </div>
         )}
 
-        {/* PII INPUT FORM */}
+        <ClientInfoForm 
+            piiFields={PII_FORM_FIELDS}
+            serviceProvider = {SERVICE_PROVIDER}
+            submissionStatus={submissionStatus} 
+            setSubmissionStatus={setSubmissionStatus}
+        />
+      
+        {/*
+        {/* PII INPUT FORM * /}
         <form onSubmit={handleSubmit} className={`space-y-4 ${submissionStatus === 'loading' ? 'opacity-50' : ''}`} disabled={isSubmitting}>
             
             <div className="space-y-4 max-h-[600px] overflow-y-auto pr-4">
@@ -172,11 +93,11 @@ const App = () => {
             </div>
             
             <div className="pt-4 border-t">
-                {/* ZERO-STORAGE COMPLIANCE NOTE */}
+                {/* ZERO-STORAGE COMPLIANCE NOTE * /}
                 <p className="text-xs text-orange-600 mb-3">
                     Compliance Note: Input fields will be cleared immediately after successful submission to comply with **zero-storage requirements**.
                 </p>
-                {/* Submit Button */}
+                {/* Submit Button * /}
                 <button 
                     type="submit" 
                     className={`w-full py-3 px-4 rounded-lg text-lg font-bold text-white shadow-md transition duration-200 
@@ -190,6 +111,7 @@ const App = () => {
                 </button>
             </div>
         </form>
+        */}
       </div>
     </div>
   );

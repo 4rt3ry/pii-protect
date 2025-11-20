@@ -31,7 +31,7 @@ app.add_middleware(HTTPSRedirectMiddleware)
 # allows for cross orgin calls
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # TODO set to frontend URL
+    allow_origins=["http://localhost:5173"],  # TODO set to frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
