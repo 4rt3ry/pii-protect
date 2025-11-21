@@ -1,120 +1,131 @@
-import React, { useState, useCallback } from 'react';
-import {ClientInfoForm} from './ClientInfoForm.jsx'
-
-// --- PII FIELD DEFINITION ---
-// Defines all fields and their requirements.
-const ALL_PII_FORM_FIELDS = [
-  // --- MANDATORY FIELDS ---
-  { key: 'firstName', label: 'First Name', type: 'text', required: true, section: 'Mandatory Information' },
-  { key: 'lastName', label: 'Last Name', type: 'text', required: true },
-  { key: 'phone', label: 'Phone Number', type: 'tel', required: true, isIdentifier: true }, // Added isIdentifier flag
-  { key: 'dob', label: 'Date of Birth (MM/DD/YYYY)', type: 'text', required: true },
-  { key: 'streetAddress', label: 'Street Address', type: 'text', required: true },
-  { key: 'city', label: 'City', type: 'text', required: true },
-  { key: 'zipCode', label: 'Zip Code', type: 'text', required: true },
-  
-  // --- OPTIONAL FIELDS ---
-  { key: 'email', label: 'Email Address', type: 'email', required: false, section: 'Optional Authentication Details' },
-  { key: 'ssnLastDigit', label: 'Last Digit of SSN', type: 'text', maxLength: 1, required: false },
-  
-  // --- FINANCIAL INFORMATION (Highly Sensitive) ---
-  { key: 'creditCard', label: 'Credit Card Number', type: 'text', required: false, section: 'Financial Details (Optional)' },
-  { key: 'expDate', label: 'Expiration Date (MM/YY)', type: 'text', maxLength: 5, required: false },
-  { key: 'cvv', label: 'CVV', type: 'text', maxLength: 4, required: false },
-
-  // --- ADDITIONAL AUTHENTICATION FIELDS ---
-  { key: 'securityQuestion', label: 'Mother\'s Maiden Name', type: 'text', required: false, section: 'Security Questions (Optional)' },
-];
-
-// TODO: should be retrieved from the server as an SSE
-const PII_FORM_FIELDS = [
-  { key: 'firstName', label: 'First Name', type: 'text', required: true, section: 'Mandatory Information' },
-  { key: 'lastName', label: 'Last Name', type: 'text', required: true },
-  { key: 'phone', label: 'Phone Number', type: 'tel', required: true, isIdentifier: true }, // Added isIdentifier flag
-  { key: 'ssnLastFour', label: 'Last 4 digits of SSN', type: 'text', maxLength: 4, required: false },
-]
+import { useState } from "react";
+import ClientInfoForm from './ClientInfoForm.jsx'
 
 
-// Hardcoded SP for the prompt
-const SERVICE_PROVIDER = 'Chase Bank';
-
-const App = () => {
-
-    const [submissionStatus, setSubmissionStatus] = useState(null); // 'success', 'error', or null
-  
-  
-  // --- MAIN RENDER ---
+export default function App() {
   return (
-    <div className="p-8 bg-gray-100 min-h-screen">
-      <div className="max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-2xl border border-gray-200">
-        
-        {/* HEADER & CONTEXT */}
-        <h1 className="text-4xl font-extrabold text-gray-900 mb-2">Secure PII Input Portal</h1>
-        
-        {/* Authentication Request Alert */}
-        <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-8 rounded-lg shadow-sm">
-            <p className="font-semibold text-blue-700">
-                Authentication Request:
-            </p>
-            <p className="text-blue-600">
-                **{SERVICE_PROVIDER}** is requesting your personal information for **authentication** purposes.
-                Your data will be encrypted before transmission.
-            </p>
-        </div>
+    <ClientInfoForm></ClientInfoForm>
+    // TODO: TOTP goes here
+  )
+}
 
-        {/* SUBMISSION STATUS DISPLAY */}
-        {(submissionStatus === 'loading' || submissionStatus === 'success') && (
-            <div className={`p-5 mb-6 rounded-xl font-bold transition duration-300 fade-in
-                ${submissionStatus === 'success' ? 'bg-green-100 text-green-700 border border-green-400' : 'bg-yellow-100 text-yellow-700 border border-yellow-400'}`}>
-                
-                {submissionStatus === 'loading' && (
-                    <p>Your information is now being **encrypted and sent to {SERVICE_PROVIDER}**.</p>
-                )}
-                
-                {submissionStatus === 'success' && (
-                    <p>Submission Complete! The encrypted payload has been sent to the server for validation.</p>
-                )}
-            </div>
-        )}
+// export default function ClientInfoForm({ onSubmit }) {
+//   const [formData, setFormData] = useState({
+//     first_name: "",
+//     last_name: "",
+//     ssn_last_4: "",
+//     phone: "+1 ",
+//   });
 
-        <ClientInfoForm 
-            piiFields={PII_FORM_FIELDS}
-            serviceProvider = {SERVICE_PROVIDER}
-            submissionStatus={submissionStatus} 
-            setSubmissionStatus={setSubmissionStatus}
-        />
-      
-        {/*
-        {/* PII INPUT FORM * /}
-        <form onSubmit={handleSubmit} className={`space-y-4 ${submissionStatus === 'loading' ? 'opacity-50' : ''}`} disabled={isSubmitting}>
-            
-            <div className="space-y-4 max-h-[600px] overflow-y-auto pr-4">
-                {renderFormFields()}
-            </div>
-            
-            <div className="pt-4 border-t">
-                {/* ZERO-STORAGE COMPLIANCE NOTE * /}
-                <p className="text-xs text-orange-600 mb-3">
-                    Compliance Note: Input fields will be cleared immediately after successful submission to comply with **zero-storage requirements**.
-                </p>
-                {/* Submit Button * /}
-                <button 
-                    type="submit" 
-                    className={`w-full py-3 px-4 rounded-lg text-lg font-bold text-white shadow-md transition duration-200 
-                        ${isSubmitting 
-                        ? 'bg-gray-500 cursor-not-allowed' 
-                        : 'bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50'
-                        }`}
-                    disabled={isSubmitting}
-                >
-                    {isSubmitting ? 'PREPARING PAYLOAD FOR ENCRYPTION...' : 'Submit PII for Authentication'}
-                </button>
-            </div>
-        </form>
-        */}
-      </div>
-    </div>
-  );
-};
+//   function handleChange(e) {
+//     let { name, value } = e.target;
 
-export default App;
+//     // Auto-ensure "+1 " stays at the beginning and limit to 10 digits
+//     if (name === "phone") {
+//       value = value.replace(/\D/g, "").slice(0, 10); // Keep only 10 digits
+//       value = "+1 " + value;
+//     }
+
+//     // ssn_last_4 must be 4-digit only
+//     if (name === "ssn_last_4") {
+//       value = value.replace(/\D/g, "").slice(0, 4);
+//     }
+
+//     setFormData((prev) => ({ ...prev, [name]: value }));
+//   }
+
+//   function handleSubmit(e) {
+//     e.preventDefault();
+//     onSubmit(formData);
+//   }
+
+//   return (
+//     <form
+//       onSubmit={handleSubmit}
+//       className="max-w-md w-full mx-auto bg-white p-8 rounded-lg shadow-md"
+//     >
+//       <h2 className="text-2xl font-bold mb-1 text-center">PII Protect Form</h2>
+//       <p className="text-sm text-gray-600 mb-6 text-center">
+//         Your data will be encrypted and securely transmitted in accordance with industry best practices.
+//       </p>
+
+//       <label className="block mb-4">
+//         <span className="block font-medium text-gray-800">
+//           First Name <span className="text-red-500">*</span>
+//         </span>
+//         <input
+//           type="text"
+//           name="first_name"
+//           value={formData.first_name}
+//           onChange={handleChange}
+//           required
+//           className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+//         />
+//       </label>
+
+//       <label className="block mb-4">
+//         <span className="block font-medium text-gray-800">
+//           Last Name <span className="text-red-500">*</span>
+//         </span>
+//         <input
+//           type="text"
+//           name="last_name"
+//           value={formData.last_name}
+//           onChange={handleChange}
+//           required
+//           className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+//         />
+//       </label>
+
+//       <label className="block mb-4">
+//         <span className="block font-medium text-gray-800">
+//           Last 4 digits of SSN <span className="text-red-500">*</span>
+//         </span>
+//         <input
+//           type="text"
+//           name="ssn_last_4"
+//           value={formData.ssn_last_4}
+//           onChange={handleChange}
+//           required
+//           className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+//         />
+//       </label>
+
+//       <label className="block mb-6">
+//         <span className="block font-medium text-gray-800">
+//           Phone Number (US) <span className="text-red-500">*</span>
+//         </span>
+//         <input
+//           type="tel"
+//           name="phone"
+//           value={formData.phone}
+//           onChange={handleChange}
+//           required
+//           className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+//         />
+//       </label>
+
+//       <button
+//         type="submit"
+//         className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition duration-200"
+//       >
+//         Submit
+//       </button>
+//     </form>
+//   );
+// }
+
+
+// ********** USAGE **********
+// async function submitClientInfo(info) {
+//   const res = await fetch("http://localhost:5000/verify_pii", {
+//     method: "POST",
+//     headers: { "Content-Type": "application/json" },
+//     body: JSON.stringify(info)
+//   });
+
+//   const data = await res.json();
+//   console.log("Verification result:", data);
+// }
+
+// <ClientInfoForm onSubmit={submitClientInfo} />
