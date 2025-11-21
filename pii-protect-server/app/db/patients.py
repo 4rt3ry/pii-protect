@@ -16,6 +16,12 @@ class Patient(BaseModel):
     insurance_provider: str
     policy_number: str
     primary_physician: str
+    
+class PatientVerify(BaseModel):
+    first_name: str
+    last_name: str
+    ssn_last_4: str
+    phone: str
 
 DATA_PATH = Path(__file__).parent.parent / "data/mockPatients.json"
 
@@ -49,3 +55,7 @@ def lookup_patient(first, last, ssn, phone):
             p["phone"].replace(" ", "").replace("-", "") == phone
         ):
             return p
+        
+def decrypt_patient(session_key, verify : PatientVerify) -> PatientVerify:
+    session_key 
+    verify[""]

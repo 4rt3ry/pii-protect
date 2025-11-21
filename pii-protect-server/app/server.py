@@ -31,7 +31,7 @@ app.add_middleware(HTTPSRedirectMiddleware)
 # allows for cross orgin calls
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # TODO set to frontend URL
+    allow_origins=["*"],  # TODO set to frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -104,6 +104,11 @@ def verify_pii(request: Request, payload: PatientVerify):
     ssn = payload.ssn_last_4
     phone = payload.phone.replace(" ", "").replace("-", "")
     
+    raw_key = request.session["session_key"] 
+    session_key = base64.b64decode(raw_key, 'ascii')
+    
+    
+    
     # TODO Decrypt patient data to pass in
     patient = patients.lookup_patient(first, last, ssn, phone)
     
@@ -151,7 +156,7 @@ def post_key_half(request: Request, payload: Publickey):
     shared_key = private_key.exchange(ec.ECDH(), client_public_key)
     
     derived_key = HKDF(
-            algorithm = hashes.SHA256(),
+            algorithm = hashes.SHA512(),
             length = 32,
             salt = None,
             info = b'handshake data'
