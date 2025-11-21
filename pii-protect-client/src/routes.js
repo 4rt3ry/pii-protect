@@ -49,7 +49,7 @@ const send = async (
 
     const response = await fetch(url, fetchOptions);
 
-    const responseBody = await response.json();
+    // const responseBody = await response.json();
 
     // handle any redirects
     // if (responseBody.redirect) {
@@ -57,11 +57,11 @@ const send = async (
     // }
 
     // handle any errors
-    if (responseBody.error) {
-        handleError(responseBody.error);
-    }
+    // if (responseBody.error) {
+    //     handleError(responseBody.error);
+    // }
 
-    if (handler) handler(responseBody);
+    // if (handler) handler(responseBody);
 
     return response;
 }

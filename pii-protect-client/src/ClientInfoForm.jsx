@@ -5,19 +5,25 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // TODO: should be retrieved from the server as an SSE
 const PII_FORM_FIELDS = [
-    { key: 'first_name', label: 'First Name', type: 'text', required: true, section: 'Mandatory Information' },
+    { key: 'first_name', label: 'First Name', type: 'text', required: true },
     { key: 'last_name', label: 'Last Name', type: 'text', required: true },
     { key: 'phone', label: 'Phone Number', type: 'tel', required: true, isIdentifier: true }, // Added isIdentifier flag
     { key: 'ssn_last_4', label: 'Last 4 digits of SSN', type: 'text', maxLength: 4, required: false },
+
+    // TODO: REMOVE TEMPORARY TOTP
+    { key: 'totp', label: 'TOTP Code', type: 'text', required: true},
 ]
 
 export default function ClientInfoForm() {
 
+
+    // TODO: set values to "" and remove totp, these are just temporary values for testing
     const initialFormState = {
-        first_name: "",
-        last_name: "",
-        ssn_last_4: "",
-        phone: "+1 ",
+        first_name: "a",
+        last_name: "a",
+        ssn_last_4: "a",
+        phone: "+1 1",
+        totp: "",
     };
 
     const [formData, setFormData] = useState(initialFormState);
@@ -42,27 +48,23 @@ export default function ClientInfoForm() {
     const handleSubmit = useCallback(async (e) => {
         e.preventDefault();
 
-        // const totpPayload = {
-        //     'totp': formdata["totp"]
-        // };
+        // TODO: REMOVE TEMPORARY TEST CODE vvvvvvvvvvv
+        const totpPayload = {
+            'totp': formData["totp"]
+        };
 
-        // const totpResponse = await sendPost(API_BASE_URL + '/verify_totp', totpPayload);
-        // console.log(totpResponse)
-        // console.log(totpResponse.headers.get('Set-Cookie'));
-        // totpResponse.headers.keys().forEach(k => console.log(k, ':', totpResponse.headers.get(k)))
-        // debugger
+        const totpResponse = await sendPost(API_BASE_URL + '/verify_totp', totpPayload);
+        console.log(totpResponse)
+        console.log(await totpResponse.json())
+        console.log(totpResponse.headers.get('Set-Cookie'));
+        totpResponse.headers.keys().forEach(k => console.log(k, ':', totpResponse.headers.get(k)))
+        // TODO: REMOVE TEMP TEST CODE ^^^^^^^^^^^^
 
         // 1. GATHER DATA: Assemble the payload ready for backend encryption
         const rawPayload = {
             timestamp: new Date().toISOString(),
             ...formData
         };
-
-        // NOTE TO BACKEND TEAM: The 'customerIdentifier' key is now the 10-digit phone number
-        // submitted by the user. Use this number to look up the user's Reference PII in the database
-        // before attempting decryption. The object 'rawPayload' would be passed here
-        // to the external encryption function (e.g., hybridEncrypt(rawPayload))
-        // before being sent via REST API.
 
         console.log("Raw PII Payload prepared for encryption:", rawPayload);
 
