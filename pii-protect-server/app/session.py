@@ -27,12 +27,11 @@ def validate_session(request: Request):
 def end_session(request: Request, response: RedirectResponse):
     request.session.clear()
     response.delete_cookie(key="Authorization")
-    return RedirectResponse("/", status_code=303)
 
 
 def check_expired(timestamp: int) -> bool:
     try:
-        exp_datetime = datetime.fromtimestamp(token_exp)
+        exp_datetime = datetime.fromtimestamp(timestamp)
         current_time = datetime.now()
         return (exp_datetime - current_time).total_seconds <= 0
 

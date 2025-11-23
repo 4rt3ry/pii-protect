@@ -18,6 +18,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.exceptions import InvalidKey
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 import base64
 
 app = FastAPI()
@@ -63,12 +64,9 @@ class Patient(BaseModel):
 class TotpPayload(BaseModel):
     totp: str
     
-class PatientVerify(BaseModel):
-    first_name: str
-    last_name: str
-    ssn_last_4: str
-    phone: str
-    timestamp: str
+class VerifyData(BaseModel):
+    iv: str
+    ciphertext: str
 
 class Success(BaseModel):
     success: bool
@@ -86,23 +84,39 @@ async def get_success():
 
 # TODO: session is ended after pii is verified
 @app.post("/verify_pii")
-def verify_pii(request: Request, payload: PatientVerify):
-
-    first = payload.first_name.lower()
-    last = payload.last_name.lower()
-    ssn = payload.ssn_last_4
-    phone = payload.phone.replace(" ", "").replace("-", "")
+def verify_pii(request: Request, payload: VerifyData):
+    
+    session_id = request.session.get("session_id")
+    token_exp = request.session.get("token_expiration")
+    
+    if not session_id or not token_exp or datetime.now().timestamp() > token_exp:
+        raise HTTPException(status_code=401, detail="Session expired or invalid")
     
     raw_key = request.session["session_key"] 
+    if not raw_key:
+        raise HTTPException(status_code=400, detail="Session key not found")
     session_key = base64.b64decode(raw_key, 'ascii')
     
-    
-    
+    try:
+        aesgcm = AESGCM(session_key)
+        iv = base64.b64decode(payload["iv"])
+        ciphertext = base64.b64decode(payload["ciphertext"])
+        decrypted_bytes = aesgcm.decrypt(iv, ciphertext, None)
+        decrypted = json.loads(decrypted_bytes.decode("utf-8"))
+        
+        first = decrypted.first_name.lower()
+        last = decrypted.last_name.lower()
+        ssn = decrypted.ssn_last_4
+        phone = decrypted.phone.replace(" ", "").replace("-", "")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to decrypt: {str(e)}")
+        
     # TODO Decrypt patient data to pass in
     patient = patients.lookup_patient(first, last, ssn, phone)
     
     if(patient):
         # TODO OR call some function to decrypt and verify information
+        end_session(request)
         return {"status": "verified", "patient_id": patient["patient_id"]}
     else:
         raise HTTPException(status_code=404, detail="PII verification failed")

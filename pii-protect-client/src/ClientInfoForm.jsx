@@ -125,13 +125,13 @@ export default function ClientInfoForm() {
         
         const verified = await response.json();
 
-        if (verified.status != "verified"){
-            console.log("Incorrect PII information!")
-            // TODO: some logic for unverified info
+        if (result.status === 'verified') {
+            console.log('PII Verified Successfully!');
+        } else {
+            console.error('PII verification failed');
+            // TODO fail logic here
             return;
         }
-
-        console.log("PII Verified Successfully!");
 
     }, [formData, aesKey]);
         
