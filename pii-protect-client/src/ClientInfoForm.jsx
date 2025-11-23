@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { sendGet, sendPost } from './routes.js'
+import React, { useState, useEffect, useCallback } from 'react';
+import { generateEcdhKeyPair, exportPublicKeyToPem, importPublicKeyFromPem, deriveSymKey, aesEncrypt } from './crypto';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -15,18 +15,44 @@ const PII_FORM_FIELDS = [
 ]
 
 export default function ClientInfoForm() {
+    const initialFormState = {
+        first_name: "",
+        last_name: "",
+        ssn_last_4: "",
+        phone: "",
+
+        // TODO: REMOVE TEMPORARY TOTP
+        totp: ""
+    };
 
 
     // TODO: set values to "" and remove totp, these are just temporary values for testing
-    const initialFormState = {
-        first_name: "a",
-        last_name: "a",
-        ssn_last_4: "a",
-        phone: "+1 1",
-        totp: "",
-    };
-
+    const [clientKeys, setClientKeys] = useState(null);
+    const [aesKey, setAesKey] = useState(null);
     const [formData, setFormData] = useState(initialFormState);
+
+    async function beginHandshake() {
+        const keyPair = await generateEcdhKeyPair();
+        setClientKeys(keyPair);
+
+        const pem = await exportPublicKeyToPem(keyPair.publicKey);
+
+        const res = await fetch("/post_public_key", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ public_key: pem })
+        });
+
+        const data = await res.json();
+
+        const serverPub = await importPublicKeyFromPem(data.public_key);
+        const sym = await deriveSymKey(keyPair.privateKey, serverPub);
+        setAesKey(sym);
+    }
+
+    useEffect(() => {
+        beginHandshake();
+    }, []);
 
     function handleChange(e) {
         let { name, value } = e.target;
@@ -53,24 +79,63 @@ export default function ClientInfoForm() {
             'totp': formData["totp"]
         };
 
-        const totpResponse = await sendPost(API_BASE_URL + '/verify_totp', totpPayload);
-        console.log(totpResponse)
-        console.log(await totpResponse.json())
-        console.log(totpResponse.headers.get('Set-Cookie'));
-        totpResponse.headers.keys().forEach(k => console.log(k, ':', totpResponse.headers.get(k)))
+        // const totpResponse = await sendPost(API_BASE_URL + '/verify_totp', totpPayload);
+        // console.log(totpResponse)
+        // console.log(await totpResponse.json())
+        // console.log(totpResponse.headers.get('Set-Cookie'));
+        // totpResponse.headers.keys().forEach(k => console.log(k, ':', totpResponse.headers.get(k)))
         // TODO: REMOVE TEMP TEST CODE ^^^^^^^^^^^^
 
-        // 1. GATHER DATA: Assemble the payload ready for backend encryption
+
+        const totpRes = await fetch("/verify_totp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ totp: formData.totp })
+        });
+
+        if (!totpRes.ok) {
+            console.error("TOTP failed");
+            return;
+        }
+
+        await beginHandshake();
+        if (!aesKey) {
+            console.error("Handshake key missing");
+            return;
+        }
+
+        console.log("Raw PII Payload prepared for encryption:", formData);
+
         const rawPayload = {
             timestamp: new Date().toISOString(),
             ...formData
         };
 
-        console.log("Raw PII Payload prepared for encryption:", rawPayload);
-
         // ZERO-STORAGE PRINCIPLE: Clear input state immediately after payload assembly
-        setFormData(initialFormState);
-    }, [formData]);
+         setFormData(initialFormState);
+
+               
+        const encryptedPayload = await aesEncrypt(aesKey, rawPayload);
+
+        const response = await fetch("/verify_pii", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(encryptedPayload) // replace with encrypted later
+        });
+        
+        const verified = await response.json();
+
+        if (verified.status != "verified"){
+            console.log("Incorrect PII information!")
+            // TODO: some logic for unverified info
+            return;
+        }
+
+        console.log("PII Verified Successfully!");
+
+    }, [formData, aesKey]);
+        
+    
 
     return (
         <form
@@ -93,69 +158,6 @@ export default function ClientInfoForm() {
                 ))
             }
 
-            {/* <FormField 
-        fieldData={PII_FORM_FIELDS[0]}
-        value={formData[PII_FORM_FIELDS[0].key]}
-        onChange={handleChange}
-      ></FormField> */}
-
-            {/* <label className="block mb-4">
-        <span className="block font-medium text-gray-800">
-          First Name <span className="text-red-500">*</span>
-        </span>
-        <input
-          type="text"
-          name="first_name"
-          value={formData.first_name}
-          onChange={handleChange}
-          required
-          className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </label>
-
-      
-
-      <label className="block mb-4">
-        <span className="block font-medium text-gray-800">
-          Last Name <span className="text-red-500">*</span>
-        </span>
-        <input
-          type="text"
-          name="last_name"
-          value={formData.last_name}
-          onChange={handleChange}
-          required
-          className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </label>
-
-      <label className="block mb-4">
-        <span className="block font-medium text-gray-800">
-          Last 4 digits of SSN <span className="text-red-500">*</span>
-        </span>
-        <input
-          type="text"
-          name="ssn_last_4"
-          value={formData.ssn_last_4}
-          onChange={handleChange}
-          required
-          className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </label>
-
-      <label className="block mb-6">
-        <span className="block font-medium text-gray-800">
-          Phone Number (US) <span className="text-red-500">*</span>
-        </span>
-        <input
-          type="tel"
-          name="phone"
-          value={formData.phone}
-          onChange={handleChange}
-          required
-          className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </label> */}
 
             <button
                 type="submit"

@@ -68,6 +68,7 @@ class PatientVerify(BaseModel):
     last_name: str
     ssn_last_4: str
     phone: str
+    timestamp: str
 
 class Success(BaseModel):
     success: bool
@@ -82,18 +83,6 @@ async def get_root():
 @app.get("/success", response_model=Success)
 async def get_success():
     return { "success": True }
-    
-# @app.get("/patients", response_model=List[Patient])
-# async def get_patients():
-#     return patient_data
-# 
-# 
-# @app.get("/patients/{patient_id}", response_model=Patient)
-# async def get_patient(patient_id: str):
-#     for patient in patient_data:
-#         if patient["patient_id"] == patient_id:
-#             return patient
-#     raise HTTPException(status_code=404, detail="Patient not found")
 
 # TODO: session is ended after pii is verified
 @app.post("/verify_pii")
