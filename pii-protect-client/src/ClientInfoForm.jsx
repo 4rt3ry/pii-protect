@@ -120,12 +120,12 @@ export default function ClientInfoForm() {
         const response = await fetch("/verify_pii", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(encryptedPayload) // replace with encrypted later
+            body: JSON.stringify(encryptedPayload)
         });
         
         const verified = await response.json();
 
-        if (result.status === 'verified') {
+        if (verified.status === 'verified') {
             console.log('PII Verified Successfully!');
         } else {
             console.error('PII verification failed');
