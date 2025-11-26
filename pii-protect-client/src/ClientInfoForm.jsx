@@ -18,10 +18,10 @@ const PII_FORM_FIELDS = [
 
 export default function ClientInfoForm() {
     const initialFormState = {
-        first_name: "Mya",
-        last_name: "Richardson",
-        ssn_last_4: "4391",
-        phone: "+1 5855550123",
+        first_name: "",
+        last_name: "",
+        ssn_last_4: "",
+        phone: "",
 
         // TODO: REMOVE TEMPORARY TOTP
         totp: ""
