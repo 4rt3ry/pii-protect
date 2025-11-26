@@ -14,12 +14,14 @@ const PII_FORM_FIELDS = [
     { key: 'totp', label: 'TOTP Code', type: 'text', required: true},
 ]
 
+// let single_key_setup = true;
+
 export default function ClientInfoForm() {
     const initialFormState = {
         first_name: "Mya",
         last_name: "Richardson",
         ssn_last_4: "4391",
-        phone: "5855550123",
+        phone: "+1 5855550123",
 
         // TODO: REMOVE TEMPORARY TOTP
         totp: ""
@@ -54,7 +56,9 @@ export default function ClientInfoForm() {
     }
 
     useEffect(() => {
-        beginHandshake();
+        //if (single_key_setup)
+            beginHandshake();
+        //single_key_setup = false;
     }, []);
 
     function handleChange(e) {
@@ -62,7 +66,7 @@ export default function ClientInfoForm() {
 
         // Auto-ensure "+1 " stays at the beginning and limit to 10 digits
         if (name === "phone") {
-            value = value.replace(/\D/g, "").slice(0, 10); // Keep only 10 digits
+            value = value.replace(/(\D\d*\s*)+/g, "").slice(0, 10); // Keep only 10 digits
             value = "+1 " + value;
         }
 
@@ -107,7 +111,7 @@ export default function ClientInfoForm() {
         console.log(await totpRes.json())
         console.log(totpRes.headers.get('Set-Cookie'))
 
-        await beginHandshake();
+        // await beginHandshake();
         if (!aesKey) {
             console.error("Handshake key missing");
             return;

@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from fastapi import Request, Response
 from fastapi.responses import RedirectResponse
-from fastapi_sessions.frontends.implementations import SessionCookie, CookieParameters
+from session_cookie import SessionCookie, CookieParameters
 from fastapi_sessions.backends.implementations import InMemoryBackend
 from fastapi_sessions.session_verifier import SessionVerifier
 from fastapi import HTTPException
@@ -57,13 +57,17 @@ async def create_session(session_key: str, response: Response):
     session_cookie.attach_to_response(response, session)
 
 async def delete_session(session_id: UUID, response: Response):
-    await session_backend.delete(session_id)
+    try:
+        await session_backend.delete(session_id)
+    except:
+        print(f"Failed to remove session {session_id}")
+
     if response != None:
         try:
             session_cookie.delete_from_response(response)
         except:
             # silent failure
-            pass
+            print(f"Failed to remove cookie {session_id}")
 
 
 # def create_session_string() -> str:
@@ -106,11 +110,12 @@ async def delete_session(session_id: UUID, response: Response):
 cookie_params = CookieParameters(
         samesite="none",
         secure=True)
+
 session_cookie = SessionCookie(
         cookie_name="session",
         identifier="Authorization",
         auto_error=True,
-        secret_key="DONOTUSE",
+        secret_key="",
         cookie_params=cookie_params
         )
 

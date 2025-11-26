@@ -51,7 +51,7 @@ def lookup_patient(first, last, ssn, phone):
         if (
             p["first_name"].lower() == first and
             p["last_name"].lower() == last and
-            p["ssn_last4"][-4:] == ssn and
+            p["ssn"][-4:] == ssn and
             p["phone"].replace(" ", "").replace("-", "") == phone
         ):
             return p

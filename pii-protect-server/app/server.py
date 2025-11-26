@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from db import patients
 from totp import get_totp_secret, verify_totp_token
 from session import *
+from uuid import UUID
 from datetime import datetime, timedelta
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -96,26 +97,31 @@ async def get_success():
 @app.post("/verify_pii", dependencies=[Depends(session_cookie)])
 def verify_pii(request: Request, payload: VerifyData, session_data: SessionData = Depends(session_verifier)):
     
-    totp_verified = request.session["totp_verified"]
+    totp_verified = session_data.totp_verified
     if not totp_verified:
         raise HTTPException(status_code=401, detail="User TOTP not verified")
 
-    raw_key = request.session["session_key"] 
+    raw_key = session_data.session_key
     if not raw_key:
         raise HTTPException(status_code=400, detail="Session key not found")
-    session_key = base64.b64decode(raw_key, 'ascii')
+
+    session_key = base64.b64decode(raw_key)
     
     try:
+        breakpoint()
         aesgcm = AESGCM(session_key)
-        iv = base64.b64decode(payload["iv"])
-        ciphertext = base64.b64decode(payload["ciphertext"])
+        iv = base64.b64decode(payload.iv)
+        ciphertext = base64.b64decode(payload.ciphertext)
         decrypted_bytes = aesgcm.decrypt(iv, ciphertext, None)
         decrypted = json.loads(decrypted_bytes.decode("utf-8"))
+
+        breakpoint()
         
-        first = decrypted.first_name.lower()
-        last = decrypted.last_name.lower()
-        ssn = decrypted.ssn_last_4
-        phone = decrypted.phone.replace(" ", "").replace("-", "")
+        first = decrypted["first_name"].lower()
+        last = decrypted["last_name"].lower()
+        ssn = decrypted["ssn_last_4"]
+        phone = decrypted["phone"].replace(" ", "").replace("-", "")
+        breakpoint()
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to decrypt: {str(e)}")
         
@@ -124,32 +130,33 @@ def verify_pii(request: Request, payload: VerifyData, session_data: SessionData 
     
     if(patient):
         # TODO OR call some function to decrypt and verify information
-        end_session(request)
+        # end_session(request)
         return {"status": "verified", "patient_id": patient["patient_id"]}
     else:
         raise HTTPException(status_code=404, detail="PII verification failed")
 
 @app.post("/verify_totp", dependencies=[Depends(session_cookie)])
-def verify_totp(request: Request, totp: TotpPayload, session_data: SessionData = Depends(session_verifier)):
+async def verify_totp(request: Request, totp: TotpPayload, session_data: SessionData = Depends(session_verifier), session_id: UUID = Depends(session_cookie)):
     secret = get_totp_secret()
     verified = verify_totp_token(secret, totp.totp)
 
-    breakpoint()
-
     if verified:
 
-        if response.session.session_key == None:
+        if session_data.session_key == None:
             return RedirectResponse("/")
 
-        response.session["totp_verified"] = True
+        session_data.totp_verified = True
+        await session_backend.update(session_id, session_data)
 
-        return RedirectResponse("/success", status_code=303)
+        return {"success": True}
+        # return RedirectResponse("/success", status_code=303)
 
     else:
         raise HTTPException(status_code=401, detail="TOTP failed")
 
 @app.post("/post_public_key", response_model = Publickey)
 async def post_key_half(request: Request, response: Response, payload: Publickey):
+
     try:
         serialized_client_public_key = payload.public_key.encode('utf-8')
         client_public_key = serialization.load_pem_public_key(
@@ -179,5 +186,4 @@ async def post_key_half(request: Request, response: Response, payload: Publickey
             format = serialization.PublicFormat.SubjectPublicKeyInfo
     )
 
-    breakpoint()
     return { "public_key": serialized_server_public_key }
