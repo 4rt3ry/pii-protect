@@ -16,6 +16,12 @@ class Patient(BaseModel):
     insurance_provider: str
     policy_number: str
     primary_physician: str
+    
+class PatientVerify(BaseModel):
+    first_name: str
+    last_name: str
+    ssn_last_4: str
+    phone: str
 
 DATA_PATH = Path(__file__).parent.parent / "data/mockPatients.json"
 
@@ -45,7 +51,8 @@ def lookup_patient(first, last, ssn, phone):
         if (
             p["first_name"].lower() == first and
             p["last_name"].lower() == last and
-            p["ssn_last4"] == ssn and
+            p["ssn"][-4:] == ssn and
             p["phone"].replace(" ", "").replace("-", "") == phone
         ):
             return p
+        
