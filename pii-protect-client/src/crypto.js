@@ -1,7 +1,6 @@
 
 
 const encoder = new TextEncoder();
-const decoder = new TextDecoder();
 
 export function arrayBufferToBase64(buffer) {
   const bytes = new Uint8Array(buffer);

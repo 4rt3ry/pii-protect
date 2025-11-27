@@ -118,7 +118,6 @@ def verify_pii(request: Request, payload: VerifyData, session_data: SessionData 
         last = decrypted["last_name"].strip().lower()
         ssn = decrypted["ssn_last_4"].strip()
         phone = decrypted["phone"].strip().replace(" ", "").replace("-", "")
-        breakpoint()
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to decrypt: {str(e)}")
         
