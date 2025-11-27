@@ -24,13 +24,6 @@ export default function TestTotp(props) {
     const handleSubmit = useCallback(async (e) => {
         e.preventDefault();
 
-        // const totpResponse = await sendPost(API_BASE_URL + '/verify_totp', totpPayload);
-        // console.log(totpResponse)
-        // console.log(await totpResponse.json())
-        // console.log(totpResponse.headers.get('Set-Cookie'));
-        // totpResponse.headers.keys().forEach(k => console.log(k, ':', totpResponse.headers.get(k)))
-        // TODO: REMOVE TEMP TEST CODE ^^^^^^^^^^^^
-
         const totpRes = await fetch(`${API_BASE_URL}/verify_totp`, {
             method: "POST",
             headers: {
