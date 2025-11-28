@@ -43,17 +43,19 @@ export default function App() {
         //single_key_setup = false;
     }, []);
 
+    let page;
 
-    if (!totpSubmitted) {
-        return (<>
-            <Totp></Totp>
-            <TestTotp setTotpSubmitted={setTotpSubmitted}></TestTotp>
-        </>);
-    }
-    else if (!verified) {
-        return <ClientInfoForm aesKey={aesKey} setVerified={setVerified}></ClientInfoForm>;
-    }
-    else {
-        return <VerifiedPage></VerifiedPage>;
-    }
+
+    if (!totpSubmitted)
+        page =
+            <>
+                <Totp></Totp>
+                <TestTotp setTotpSubmitted={setTotpSubmitted}></TestTotp>
+            </>;
+    else if (!verified)
+        page = <ClientInfoForm aesKey={aesKey} setVerified={setVerified}></ClientInfoForm>;
+    else
+        page = <VerifiedPage></VerifiedPage>;
+
+    return page;
 }
