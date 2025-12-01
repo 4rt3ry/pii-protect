@@ -5,6 +5,7 @@ const TOTP_FORM_FIELD = { key: 'totp', label: 'Simulate verbally giving TOTP to 
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+const TOTP_PHONE = "+15855550123";
 
 /**
  * 
@@ -31,7 +32,7 @@ export default function TestTotp(props) {
                 "Session-Cookie": "HttpOnly"
             },
             credentials: 'include',
-            body: JSON.stringify({ totp: formData.totp })
+            body: JSON.stringify({ totp: formData.totp, phone: TOTP_PHONE })
         });
 
         if (!totpRes.ok) {

@@ -13,6 +13,7 @@ __all__ = ["session_cookie", "session_backend", "session_verifier", "create_sess
 
 class SessionData(BaseModel):
     session_key: str
+    phone: str
     totp_verified: bool
 
 class CustomSessionVerifier(SessionVerifier[UUID, SessionData]):
@@ -51,7 +52,7 @@ class CustomSessionVerifier(SessionVerifier[UUID, SessionData]):
 
 async def create_session(session_key: str, response: Response):
     session = uuid4()
-    data = SessionData(session_key=session_key, totp_verified=False)
+    data = SessionData(session_key=session_key, phone="", totp_verified=False)
 
     await session_backend.create(session, data)
     session_cookie.attach_to_response(response, session)
