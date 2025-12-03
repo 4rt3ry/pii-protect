@@ -8,7 +8,8 @@ def main():
                 reload=True, 
                 ssl_keyfile=Path(__file__).parent / "secrets/certs/sample-ec-key.pem",
                 ssl_certfile=Path(__file__).parent / "secrets/certs/sample-cert.pem",
-                log_level="debug")
+                log_level="debug",
+                reload_excludes="test*.py")
                 
 
 if __name__ == "__main__":

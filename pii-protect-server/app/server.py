@@ -96,7 +96,7 @@ async def get_success():
 
 # TODO: session is ended after pii is verified
 @app.post("/verify_pii", dependencies=[Depends(session_cookie)])
-def verify_pii(request: Request, payload: VerifyData, session_data: SessionData = Depends(session_verifier)):
+async def verify_pii(request: Request, payload: VerifyData, session_data: SessionData = Depends(session_verifier)):
     
     totp_verified = session_data.totp_verified
     totp_phone = session_data.phone.strip().replace(" ", "").replace("-", "")
