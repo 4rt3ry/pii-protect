@@ -11,8 +11,8 @@ idna==3.10
 itsdangerous==2.2.0
 Jinja2==3.1.6
 MarkupSafe==3.0.2
-psycopg2==2.9.10; platform_system == "Linux"
 psycopg2==2.9.10; platform_system == "Windows"
+psycopg2-binary==2.9.10; platform_system == "Linux"
 psycopg2-binary==2.9.10; platform_system == "Darwin"
 pytz==2025.2
 PyYAML==6.0.2
