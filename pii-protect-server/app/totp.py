@@ -32,12 +32,12 @@ def verify_totp_token(secret: str, token: str) -> bool:
 
 
 
-def get_totp_secret() -> str:
+def get_totp_secret(phone: str) -> str:
     """
     Returns the sample totp secret as a string
     """
     with open(TOTP_SECRET_PATH, 'r') as totp_file:
-        return json.load(totp_file)["sample_secret"]
+        return json.load(totp_file)[phone]
 
 
 

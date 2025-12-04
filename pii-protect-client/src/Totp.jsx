@@ -9,6 +9,7 @@ export default function Totp() {
     // IMPORTANT: Secret may only be HARDCODED for Proof of Concept
     // Otherwise, this MUST be fetched securely from the backend via API and NEVER exposed in client-side code
     const SECRET = 'AAIC24SAJANPCQP3AI6AXG26KY2WMG6J';
+    const TOTP_PHONE = "+15855550123";
 
     const generateTOTP = async () => {
         const base32ToUint8Array = (b32) => {

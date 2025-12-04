@@ -73,6 +73,7 @@ class Patient(BaseModel):
     primary_physician: str
 
 class TotpPayload(BaseModel):
+    phone: str
     totp: str
     
 class VerifyData(BaseModel):
@@ -98,7 +99,9 @@ async def get_success():
 def verify_pii(request: Request, payload: VerifyData, session_data: SessionData = Depends(session_verifier)):
     
     totp_verified = session_data.totp_verified
-    if not totp_verified:
+    totp_phone = session_data.phone.strip().replace(" ", "").replace("-", "")
+
+    if not totp_verified or len(totp_phone) == 0:
         raise HTTPException(status_code=401, detail="User TOTP not verified")
 
     raw_key = session_data.session_key
@@ -118,6 +121,10 @@ def verify_pii(request: Request, payload: VerifyData, session_data: SessionData 
         last = decrypted["last_name"].strip().lower()
         ssn = decrypted["ssn_last_4"].strip()
         phone = decrypted["phone"].strip().replace(" ", "").replace("-", "")
+
+        if totp_phone != phone:
+            raise HTTPException(status_code=400, detail="PII verification failed")
+
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to decrypt: {str(e)}")
         
@@ -133,7 +140,11 @@ def verify_pii(request: Request, payload: VerifyData, session_data: SessionData 
 
 @app.post("/verify_totp", dependencies=[Depends(session_cookie)])
 async def verify_totp(request: Request, totp: TotpPayload, session_data: SessionData = Depends(session_verifier), session_id: UUID = Depends(session_cookie)):
-    secret = get_totp_secret()
+
+    if len(totp.phone) == 0:
+        return RedirectResponse("/")
+
+    secret = get_totp_secret(totp.phone)
     verified = verify_totp_token(secret, totp.totp)
 
     if verified:
@@ -142,6 +153,7 @@ async def verify_totp(request: Request, totp: TotpPayload, session_data: Session
             return RedirectResponse("/")
 
         session_data.totp_verified = True
+        session_data.phone = totp.phone
         await session_backend.update(session_id, session_data)
 
         return {"success": True}
