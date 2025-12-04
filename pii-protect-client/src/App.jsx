@@ -38,10 +38,12 @@ export default function App() {
     }
 
     useEffect(() => {
-        //if (single_key_setup)
-        beginHandshake();
+        if (totpSubmitted & !aesKey){
+            beginHandshake();
+        }
+        
         //single_key_setup = false;
-    }, []);
+    }, [totpSubmitted]);
 
     let page;
 
