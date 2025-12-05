@@ -10,11 +10,38 @@ const TOTP_PHONE = "+15855550123";
 /**
  * 
  */
-export default function TestTotp(props) {
+export default function TestTotp({ setTotpSubmitted, setAesKey }) {
+    
+    async function beginHandshake() {
+        const keyPair = await generateEcdhKeyPair();
+
+        const pem = await exportPublicKeyToPem(keyPair.publicKey);
+
+        const res = await fetch(`${API_BASE_URL}/post_public_key`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({ public_key: pem })
+        });
+
+        const data = await res.json();
+
+        const serverPub = await importPublicKeyFromPem(data.public_key);
+        const sym = await deriveSymKey(keyPair.privateKey, serverPub);
+        setAesKey(sym);
+    }
+
+    useEffect(() => {
+        
+    }, []);
+    
+    
     const initialFormState = {
         totp: ""
     };
-    const { setTotpSubmitted } = props;
+    // const { setTotpSubmitted } = props;
     const [formData, setFormData] = useState(initialFormState);
 
     const handleChange = useCallback((e) => {
@@ -39,6 +66,8 @@ export default function TestTotp(props) {
             console.error("TOTP failed");
             return;
         }
+
+        beginHandshake();
 
         setTotpSubmitted(true);
     }, [formData, setTotpSubmitted]);

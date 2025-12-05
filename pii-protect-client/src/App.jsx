@@ -15,35 +15,7 @@ export default function App() {
     const [verified, setVerified] = useState(false);
     // const [clientKeys, setClientKeys] = useState(null);
 
-    async function beginHandshake() {
-        const keyPair = await generateEcdhKeyPair();
-        // setClientKeys(keyPair);
-
-        const pem = await exportPublicKeyToPem(keyPair.publicKey);
-
-        const res = await fetch(`${API_BASE_URL}/post_public_key`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            credentials: "include",
-            body: JSON.stringify({ public_key: pem })
-        });
-
-        const data = await res.json();
-
-        const serverPub = await importPublicKeyFromPem(data.public_key);
-        const sym = await deriveSymKey(keyPair.privateKey, serverPub);
-        setAesKey(sym);
-    }
-
-    useEffect(() => {
-        if (totpSubmitted & !aesKey){
-            beginHandshake();
-        }
-        
-        //single_key_setup = false;
-    }, [totpSubmitted]);
+    
 
     let page;
 
@@ -52,7 +24,7 @@ export default function App() {
         page =
             <>
                 <Totp></Totp>
-                <TestTotp setTotpSubmitted={setTotpSubmitted}></TestTotp>
+                <TestTotp setTotpSubmitted={setTotpSubmitted} setAesKey={setAesKey}></TestTotp>
             </>;
     else if (!verified)
         page = <ClientInfoForm aesKey={aesKey} setVerified={setVerified}></ClientInfoForm>;
