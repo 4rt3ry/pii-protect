@@ -1,5 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import FormField from './FormField';
+import { generateEcdhKeyPair, exportPublicKeyToPem, importPublicKeyFromPem, deriveSymKey } from './crypto';
+
 
 const TOTP_FORM_FIELD = { key: 'totp', label: 'Simulate verbally giving TOTP to the service provider. ', type: 'text', required: true };
 
@@ -31,12 +33,7 @@ export default function TestTotp({ setTotpSubmitted, setAesKey }) {
         const serverPub = await importPublicKeyFromPem(data.public_key);
         const sym = await deriveSymKey(keyPair.privateKey, serverPub);
         setAesKey(sym);
-    }
-
-    useEffect(() => {
-        
-    }, []);
-    
+    }   
     
     const initialFormState = {
         totp: ""
